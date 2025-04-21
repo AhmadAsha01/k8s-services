@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: length-service
+  labels:
+    app: length-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: length-service
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8081"
+        prometheus.io/path: "/metrics"
+      labels:
+        app: length-service
+    spec:
+      containers:
+      - name: length-service
+        image: length-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8081
+        env:
+        - name: JAEGER_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: observability-config
+              key: jaeger_host
+        - name: JAEGER_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: observability-config
+              key: jaeger_port
+        resources:
+          limits:
+            cpu: "0.5"
+            memory: "256Mi"
+          requests:
+            cpu: "0.2"
+            memory: "128Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8081
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 5

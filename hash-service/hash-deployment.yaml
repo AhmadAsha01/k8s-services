@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hash-service
+  labels:
+    app: hash-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hash-service
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+      labels:
+        app: hash-service
+    spec:
+      containers:
+      - name: hash-service
+        image: hash-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        env:
+        - name: JAEGER_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: observability-config
+              key: jaeger_host
+        - name: JAEGER_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: observability-config
+              key: jaeger_port
+        resources:
+          limits:
+            cpu: "0.5"
+            memory: "256Mi"
+          requests:
+            cpu: "0.2"
+            memory: "128Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
